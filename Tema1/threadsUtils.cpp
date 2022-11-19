@@ -2,45 +2,8 @@
 
 using namespace std;
 
-#define INIT_ERROR "Unable to process the request.\nThe format must be : ./threads [number_mapper_threads] [number_reducer_threads] [input_file]\n"
-#define MAPPER_THREAD_CREATE_ERROR "Unable to create the thread for the mapper.\n"
-#define REDUCER_THREAD_CREATE_ERROR "Unable to create the thread for the reducer.\n"
-#define THREAD_JOIN_ERROR "Error while waiting to join the thread.\n"
-
-#define MAX_OFFSET 5
-#define MAX_FILENAME 100
-#define MAX_ARR_SIZE 100
-
-
-void init(int argc, char *argv[], utils_t &utils) {
-    if (argc < 4) {
-        perror(INIT_ERROR);
-        exit(-1);
-    }
-
-    utils.mapperThreads = atoi(argv[1]);
-    utils.reducerThreads = atoi(argv[2]);
-    string inputFile = argv[3];
-
-    utils.threads = (pthread_t *) calloc((utils.mapperThreads + utils.reducerThreads + MAX_OFFSET),
-                    sizeof(pthread_t));
-    for (int i = 0; i < utils.reducerThreads; i++) {
-        std::unordered_map<int, std::unordered_set<int>> myMap;
-        utils.exponents.push_back(myMap);
-    }
-    pthread_barrier_init(&utils.barrier, NULL, utils.mapperThreads);
-
-    // Reading the files from the test.txt files
-    int numberOfFiles = 0;
-    string buffer;
-    ifstream fileReader(inputFile);
-
-    fileReader >> numberOfFiles;
-    getline(fileReader, buffer);
-    for (int i = 0; i < numberOfFiles; i++) {
-        getline(fileReader, buffer);
-        utils.inputFiles.push(buffer);
-    }
+void init(int argc, char *argv[], utils_t **utils) {
+    
 }
 
 int minim(int a, int b) {
@@ -51,53 +14,109 @@ int minim(int a, int b) {
     return a;
 }
 
-bool isPower(int x, long int y) {
-    long int pow = 1;
-    while (pow < y) {
-        pow *= x;
+bool isPower(int exp, int number) {
+    // TODO make binary
+    for (int base = 2; base <= sqrt(number); base++) {
+        int power = pow(base, exp);
+        if (power == number) {
+            return true;
+        } else {
+            if (power > number || power < 0) {
+                break;
+            }
+        }
     }
- 
-    return (pow == y);
+
+    return false;
 }
 
 void *mapper_function(void *arg) {
-    utils_t utils = *(utils_t *) arg;
+    utils_t *utils = (utils_t *) arg;
 
-    while (!utils.inputFiles.empty()) {
-        string buffer = utils.inputFiles.top();
-        utils.inputFiles.pop();
+    while (true) {
+	    pthread_mutex_lock(utils->mutex);
+        string buffer;
+
+        if (!utils->inputFiles->empty()) {
+            buffer = utils->inputFiles->top();
+
+            cout << utils->inputFiles->size() << endl;
+            utils->inputFiles->pop();
+            cout << utils->inputFiles->size() << endl;
+
+            cout<<"Thread " << utils->id << " for " << buffer <<endl;
+	        pthread_mutex_unlock(utils->mutex);
+        } else {
+	        pthread_mutex_unlock(utils->mutex);
+            break;
+        }
+
         ifstream fileReader(buffer);
 
-        while(getline(fileReader, buffer)) {
-            int number = stoi(buffer);
-            cout << number << " ";
+        if (!fileReader.is_open()) {
+            perror(FILE_ERROR);
+            exit(-1);
+        }
 
+        int number;
+        fileReader >> number;
+
+        while(fileReader >> number) {
             // Check perfect number
-            for (int exp = 2; exp <= utils.reducerThreads; exp++) {
-                if (isPower(exp, number)) {
-                    utils.exponents.at(utils.id)[exp].insert(number);
+            if (number == 1) {
+                for (int exp = 2; exp < utils->reducerThreads + 2; exp++) {
+                    utils->exponents[exp].insert(number);
+                }
+            } else {
+                for (int exp = 2; exp < utils->reducerThreads + 2; exp++) {
+                    if (isPower(exp, number)) {
+                        (utils->exponents)[exp].insert(number);
+                    }
                 }
             }
         }
     }
-	pthread_barrier_wait(&utils.barrier);
+
+	pthread_barrier_wait(utils->barrier);
 
   	pthread_exit(NULL);
 }
 
 void *reducer_function(void *arg) {
-    utils_t utils = *(utils_t *) arg;
-	pthread_barrier_wait(&utils.barrier);
 
-    cout << "Saleu";
+    utils_t *utils = (utils_t *) arg;
+	pthread_barrier_wait(&utils[0].barrier);
+    int id = utils->id;
+    int mapperThreads = utils[0].mapperThreads;
+    int reducerThreads = utils[0].reducerThreads;
+    string inputTestFile = utils[0].inputTestFile;
+
+    unordered_set<int> reducerSet;
+
+    for(int i = 0; i < mapperThreads; i++) {
+        reducerSet.insert(utils[i].exponents[id].begin(), utils[i].exponents[id].end());
+    }
+
+    // TODO : Nu cred ca merge
+    char outputFile[20];
+    sprintf(outputFile, "out%d.txt", id);
+
+    ofstream fileWriter(outputFile);
+    fileWriter << reducerSet.size();
+
+    cout << "Gata reducer" << endl;
 
   	pthread_exit(NULL);
 }
 
-void threadCreate(utils_t &utils) {
-    for (int i = 0; i < utils.mapperThreads; i++) {
-        utils.id = i;
-        int r = pthread_create(&utils.threads[i], NULL, mapper_function, &utils);
+void threadCreate(utils_t **utils) {
+    int mapperThreads = (*utils)[0].mapperThreads;
+    int reducerThreads = (*utils)[0].reducerThreads;
+    pthread_t *threads = (*(*utils)[0].threads);
+
+    for (int i = 0; i < mapperThreads; i++) {
+        (*utils)[i].id = i;
+        int r = pthread_create(&threads[i], NULL, mapper_function, &((*utils)[i]));
 
         if (r) {
 	  		perror(MAPPER_THREAD_CREATE_ERROR);
@@ -105,9 +124,9 @@ void threadCreate(utils_t &utils) {
 		}
     }
 
-    for (int i = 0; i < utils.reducerThreads; i++) {
-        utils.id = i;
-        int r = pthread_create(&utils.threads[i], NULL, reducer_function, &utils);
+    for (int i = 0; i < reducerThreads; i++) {
+        (*utils)[i].id = i;
+        int r = pthread_create(&threads[i], NULL, reducer_function, utils);
 
         if (r) {
 	  		perror(REDUCER_THREAD_CREATE_ERROR);
@@ -116,17 +135,23 @@ void threadCreate(utils_t &utils) {
     }
 }
 
-void threadJoin(utils_t &utils) {
-    // TODO : change (old implementation)
-    for (int i = 0; i < utils.mapperThreads + utils.reducerThreads + 1; i++) {
+void threadJoin(utils_t **utils) {
+    int mapperThreads = (*utils)[0].mapperThreads;
+    int reducerThreads = (*utils)[0].reducerThreads;
+    pthread_t *threads = (*(*utils)[0].threads);
+
+    for (int i = 0; i < mapperThreads + reducerThreads; i++) {
         void *status;
-		int r = pthread_join(utils.threads[i], &status);
+		int r = pthread_join(threads[i], &status);
 
         if (r) {
 	  		perror(THREAD_JOIN_ERROR);
 	  		exit(-1);
 		}
   	}
+
+	pthread_mutex_destroy((*utils)[0].mutex);
+	pthread_barrier_destroy((*utils)[0].barrier);
 }
 
 void threadsPrint() {
@@ -141,7 +166,5 @@ void threadsPrint() {
     // }
 }
 
-void threadExit(utils_t &utils) {
-	pthread_barrier_destroy(&utils.barrier);
-  	pthread_exit(NULL);
+void threadExit(utils_t **utils) {
 }
