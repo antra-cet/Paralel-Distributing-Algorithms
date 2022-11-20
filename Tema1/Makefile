@@ -1,5 +1,5 @@
 build:
-	g++ threads.cpp threadsUtils.cpp -o threads -lpthread -Wall
+	g++ threads.cpp threadsUtils.cpp -o tema1 -lpthread -Wall -Werror
 
 clean:
-	rm -rf threads
+	rm -rf tema1 ./out*

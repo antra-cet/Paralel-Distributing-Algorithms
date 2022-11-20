@@ -4,13 +4,12 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-    utils_t *utils;
-
     if (argc < 4) {
         perror(INIT_ERROR);
         exit(-1);
     }
 
+    // Filling out the needed fields
     int mapperThreads = atoi(argv[1]);
     int reducerThreads = atoi(argv[2]);
     string inputTestFile = argv[3];
@@ -30,26 +29,29 @@ int main(int argc, char *argv[]) {
     // Reading the files from the test.txt files
     int numberOfFiles = 0;
     string buffer;
-    ifstream fileReader(inputTestFile);
+    std::stack<std::string> inputFiles;
 
+    ifstream fileReader(inputTestFile);
     if (!fileReader.is_open()) {
         perror(FILE_ERROR);
         exit(-1);
     }
 
-    std::stack<std::string> inputFiles;
-
     fileReader >> numberOfFiles;
     for (int i = 0; i < numberOfFiles; i++) {
+        // Placing all the input files into a stack
         fileReader>>buffer;
         inputFiles.push(buffer);
     }
 
+    fileReader.close();
+
+    // Declaring and filling the parameters of my utils structure
+    utils_t *utils;
     utils = (utils_t *) calloc((mapperThreads + reducerThreads + 1), sizeof(utils_t));
     for (int i = 0; i < mapperThreads + reducerThreads; i++) {
         utils[i].mapperThreads = mapperThreads;
         utils[i].reducerThreads = reducerThreads;
-        utils[i].inputTestFile = inputTestFile;
 
         utils[i].threads = &threads;
         utils[i].barrier = &barrier;
@@ -58,12 +60,13 @@ int main(int argc, char *argv[]) {
         utils[i].inputFiles = &inputFiles;
         utils[i].exponents.reserve(reducerThreads + 2);
     }
-    // init(argc, argv, &utils);
 
+    // Creating the threads for the mappers/ reducers
     threadCreate(&utils);
-    threadJoin(&utils);
-    // threadsPrint();
-    // threadExit(&utils);
 
+    // Joining all the threads
+    threadJoin(&utils);
+
+    // Exiting the threads
   	pthread_exit(NULL);
 }

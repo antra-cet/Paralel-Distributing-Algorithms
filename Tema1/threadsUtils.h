@@ -25,10 +25,10 @@
 #define MAX_FILENAME 100
 #define MAX_ARR_SIZE 100
 
+// The utils structures that remembers the necessary fields
 struct utils_t {
     int mapperThreads;
     int reducerThreads;
-    std::string inputTestFile;
 
     pthread_barrier_t *barrier;
     pthread_mutex_t *mutex;
@@ -40,16 +40,16 @@ struct utils_t {
     std::unordered_map<int, std::unordered_set<int>> exponents;
 };
 
-void init(int argc, char *argv[], utils_t **utils);
-
-int minim(int a, int b);
+// The reducer structure used to remember utils and the additional
+// id for the reducers
+struct reducer_t {
+    int id;
+    utils_t *utils;
+};
 
 void *mapper_function(void *arg);
 void *reducer_function(void *arg);
+// void *f(void *arg);
+
 void threadCreate(utils_t **utils);
-
 void threadJoin(utils_t **utils);
-
-void threadsPrint();
-
-void threadExit(utils_t **utils);

@@ -1,0 +1,10 @@
+Threads Homework - Bivolaru Andra 333CA
+
+--threads.cpp()
+    This is the file that contains the main function.
+    It firstly initializes all the fields used for the rest of the logic,
+fields such as the input files from which we read, the barriers and mutexes.
+    Then, we declare an array of utils objects that are used to fill out the exponents
+and the pointers to the barriers and mutexes.
+    After declaring, we call the threadCreate and then threadJoin functions
+and at the end exit the threads.
