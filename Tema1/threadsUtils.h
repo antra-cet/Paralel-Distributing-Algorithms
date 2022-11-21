@@ -21,12 +21,8 @@
 #define THREAD_JOIN_ERROR "Error while waiting to join the thread.\n"
 #define FILE_ERROR "Coldn't open the file to read.\n"
 
-#define MAX_OFFSET 5
-#define MAX_FILENAME 100
-#define MAX_ARR_SIZE 100
-
-// The utils structures that remembers the necessary fields
-struct utils_t {
+// The mapper structures that remembers the necessary fields
+struct mapper_t {
     int mapperThreads;
     int reducerThreads;
 
@@ -36,20 +32,19 @@ struct utils_t {
 
     std::stack<std::string> *inputFiles;
 
-    int id;
-    std::unordered_map<int, std::unordered_set<int>> exponents;
+    int mapperId;
+    std::unordered_map<int, std::unordered_set<int>> exponentsMap;
 };
 
 // The reducer structure used to remember utils and the additional
 // id for the reducers
 struct reducer_t {
-    int id;
-    utils_t *utils;
+    int reducerId;
+    mapper_t *mappers;
 };
 
 void *mapper_function(void *arg);
 void *reducer_function(void *arg);
-// void *f(void *arg);
 
-void threadCreate(utils_t **utils);
-void threadJoin(utils_t **utils);
+void threadCreate(mapper_t **mappers);
+void threadJoin(mapper_t **mappers);

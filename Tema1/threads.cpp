@@ -46,26 +46,26 @@ int main(int argc, char *argv[]) {
 
     fileReader.close();
 
-    // Declaring and filling the parameters of my utils structure
-    utils_t *utils;
-    utils = (utils_t *) calloc((mapperThreads + reducerThreads + 1), sizeof(utils_t));
+    // Declaring and filling the parameters of my mappers structure
+    mapper_t *mappers;
+    mappers = (mapper_t *) calloc((mapperThreads + reducerThreads + 1), sizeof(mapper_t));
     for (int i = 0; i < mapperThreads + reducerThreads; i++) {
-        utils[i].mapperThreads = mapperThreads;
-        utils[i].reducerThreads = reducerThreads;
+        mappers[i].mapperThreads = mapperThreads;
+        mappers[i].reducerThreads = reducerThreads;
 
-        utils[i].threads = &threads;
-        utils[i].barrier = &barrier;
-        utils[i].mutex = &mutex;
+        mappers[i].threads = &threads;
+        mappers[i].barrier = &barrier;
+        mappers[i].mutex = &mutex;
 
-        utils[i].inputFiles = &inputFiles;
-        utils[i].exponents.reserve(reducerThreads + 2);
+        mappers[i].inputFiles = &inputFiles;
+        mappers[i].exponentsMap.reserve(reducerThreads + 2);
     }
 
     // Creating the threads for the mappers/ reducers
-    threadCreate(&utils);
+    threadCreate(&mappers);
 
     // Joining all the threads
-    threadJoin(&utils);
+    threadJoin(&mappers);
 
     // Exiting the threads
   	pthread_exit(NULL);

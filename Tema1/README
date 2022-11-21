@@ -8,3 +8,36 @@ fields such as the input files from which we read, the barriers and mutexes.
 and the pointers to the barriers and mutexes.
     After declaring, we call the threadCreate and then threadJoin functions
 and at the end exit the threads.
+
+--threadsUtils.h
+    In this header file are declared all the used functions, such as the mapper
+and reducer functions, and also the threadCreate and threadJoin functions.
+    There are also defined here all the errors to output in case of something not functioning.
+    There are 2 structs : utils_t that contain all the important fields used, and also
+the reducer_t that is used to remember the id and list of utils when the reducers are calculating
+the number pf exponents.
+
+--threadsUtils.cpp
+    This is the file in which all the functions are implemented.
+    -- isPower() : the function that takes an exponent and a number and verifies if there is a base
+    such as base^Exp = number, using binary search for a more efficient search
+
+    --mapper_function() : the function used for the creation of threads for the mappers. For each thread
+    it remains in the loop and takes data from the input files, until there are no more files to read
+    from. While retrieving the first element from the stack, a mutex is used so that 2 threads
+    don't read at the same time.
+                        Afterwards, numbers are read from the file and for each are checked if there is a 
+    base for an exponent, and if true then the number is added to the hashmap of exponents for the mapper
+    thread.
+                        At the end, a barrier is placed to wait for all the mapper threads, in order to
+    synchronize the reducer and mapper threads.
+
+    --reducer_function() : this function recieves an id (the exponent that reducer thread deals with)
+    and looks through all the mapper thread's hashmaps to calculate the number of unique perfect powers, adding
+    the values in the map, at the exponent key, and adding all the values in a set that remembers only unique
+    numbers.
+                        At the end, the size is written in the output file.
+
+    --threadCreate() : This function firstly extracts the required information from the utils object and then creates the threads for the mapper and reducer functions.
+
+    --threadJoin() : Joins all the threads previously created and destroys the barrier and mutex associated with all the utils array objects.
