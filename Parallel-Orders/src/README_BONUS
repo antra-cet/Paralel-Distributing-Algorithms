@@ -1,0 +1,9 @@
+README_BONUS - Tema2 APD
+BIVOLARU ANDRA 333CA
+
+	For the bonus of the homework, which was to have a common reader
+for the orders.txt file, I just changed the ordinary FileReader to a BufferedReader
+so that when a thread read a certain line, and by using the same object, then
+it is stored the last line read.
+	In short, by using the same BufferedReader helps maintain the reading order of the file,
+despite having multiple threads accessing it at the same time.

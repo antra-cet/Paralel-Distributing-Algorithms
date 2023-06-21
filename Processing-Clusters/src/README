@@ -1,0 +1,55 @@
+Tema3 APD - Bivolaru Andra 333CA
+
+tema3.c
+    main() :
+        - Firstly, the filename will be initialized for the cluseters
+    to read from their designated input file.
+        - Then, initialize the path, used for testing and for the checker.
+        - Afterwards, read the size, dimension of the vector and rank
+        - We check what is the rank of the node : if it's a cluster (< 3), then
+    we use a logic, and if it's not another.
+
+        - The information will be sent in this order:
+            0 -> 3 -> 2 -> 1 (now, 1 has the correct topology)
+            1 -> workers (to change the vector)
+            workers -> 1
+            1 -> 2
+            2 -> workers (to change the vector)
+            workers -> 2
+            2 -> 3
+            3 -> workers (to change the vector)
+            workers -> 3
+            3 -> 0
+            0 -> workers
+            workers -> 0
+
+        - The information sent will look like this
+            - num_procs : the total number of processes found until that time
+            - procs : a vector of processes found; for each leader that has access
+        to a input file, the found information will be appended to the procs vector;
+        for example : if the 3rd node recieves from 0 (procs = [4]), and he reads from
+        its inpit file 5 6, then the procs vector he will further send will look like this
+        (procs = [4 5 6])
+            - num_procs_controlled : a vector of 4 elements (the leaders) and the number
+        of workers each of them have
+            - v : the vector to be changed by the workers for task 2
+
+        - leader ranks :
+            - 0 creates the vector for task 2
+            - reads the input file
+            - creates the information
+            - sends it to the next node in the topology
+            - waits for the information to be sent back by the nodes (or if node 1 then not)
+            - prints the topology
+            - sends the vector and info to the workers
+            - waits for a reply from the workers
+            - sends the info to the previous node in the topology (or if node 0 then no)
+            - 0 prints out the vector
+
+        - workers :
+            - wait to recieve the info from the leader
+            - processes the information and changes the vector
+            - sends back to the leader the updated elements
+        
+        - at the end, th empi is finalized
+        

@@ -1,0 +1,65 @@
+README - Tema2 APD
+BIVOLARU ANDRA 333 CA
+
+Requirement
+For this assessment, a Black Friday command processor must be implemented in the Java programming language,
+which uses parallelization mechanisms.
+The idea of the homework is to process orders in parallel, respectively to process each product separately
+(even within the same command) in a parallel mode. You can make an analogy with the way they are sent
+(or at least, they were at a given moment) the products from the eMAG orders: due to the fact that they can be in
+different warehouses, often products from the same warehouse can leave in different parcels by courier for
+streamlining delivery. The purpose of the assessment is to simulate this workflow. Thus, at a point in time
+the order may have some products shipped, but only when all the products from its frame are sent we can say that the
+whole order is shipped.
+The program must read two input files (what account, in orders, respectively the products account, held in
+their framework) and create two output files in which to write the shipped orders, respectively the products
+shipped out.
+
+Tema2.java
+	- This file contains the main logic for the implementation
+	- In here I first retrieved the necessary fields from the args[], which are
+the starting input folder and the number of maximum threads to use
+	- After that, starts the main logic, for which I chose the ExecutorService,
+as it was presented in the 7th laboratory, as it is the most similar with this task.
+	- Thus, I created my two executors : one for the orders_out.txt file and another
+for the order_products_out.txt
+	- After that, I created my buffered readers and writers : one reader for the
+orders.txt file and the two writers for the two output files
+	- Having all the object set, I started my main for loop for the number of threads,
+each thread starting a new execution of the OrdersRunnable, and incrementing the inQueueOrders
+
+
+OrdersRunnable.java
+	- This class implements the Runnable class
+	- Firstly, the private objects are the ones declared in the main loop, that contain
+the required information to write in the output files
+	- In the overridden method run(), only one line from the file is read, parsed and only in the
+end, a new order is submitted and another process starts for the next lines.
+	- Firstly, the line should not be null and if it passes this condition, then we extract by splitting
+the line after "," the orderId and the number of products.
+	- After knowing how many products we need for which order, then we initialize a semaphore (with the -(number of products - 1))
+so that only after shipping all the products (done in the ProductsRunnable) we can finalize the order and mark
+it as shipped
+	- Then, it is started a thread for each of the number of products, to search for the products in the orders_product.txt
+file and mark them as shipped in one of the output files
+	- It is also created a buffered reader for each of the thread so that we calculate which product
+to search for after the index. After that, the inQueueProducts is incremented and a new ProductsRunnable
+is submitted.
+	- After finishing the process, a barrier is placed so that only then the order can
+be marked as shipped (write in the output file shipped).
+	- After marking it as shipped, we read in this thread the next line available from the input file.
+	- After reading all the lines, we can close the executor, the input file and the writer file.
+
+
+ProductsRunnable.java
+	- This class also implements the Runnable class
+	- This class is for the second executors : after finding the order and the number of products
+the products themselves must be found and shipped.
+	- So, this object contains an pre-set (in the OrdersRunnable) reader that reads from the second input file
+	- In the run() method, different from the other executor class, we must read line by line each time
+for each of the products to find the product a certain order requires.
+	- For this, a index is used to keep track of each line that contains the needed orderId. When the index reaches
+the productIndex given, then we can mark the product as shipped (write in the second output file).
+	- After the product is shipped, then we can release the semaphore (to increment it and mark it as one of the products
+were found).
+	- At the end, we verify if inQueueProducts is -1 and if so, the writer is closed and teh executor is shut
